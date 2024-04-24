@@ -1,55 +1,45 @@
 //create web server
+//create express app
 const express = require('express');
 const app = express();
-const path = require('path');
-const fs = require('fs');
+//create body parser
 const bodyParser = require('body-parser');
-const port = 3000;
-
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-//get comments
-app.get('/comments', (req, res) => {
-    res.sendFile(path.join(__dirname, 'comments.json'));
-});
-
-//add comments
+//create comments array
+const comments = [];
+//create comment counter
+let commentCounter = 1;
+//create post request
 app.post('/comments', (req, res) => {
-    const comments = require('./comments.json');
-    comments.push(req.body);
-    fs.writeFileSync('comments.json', JSON.stringify(comments));
-    res.send(req.body);
+    const comment = {
+        id: commentCounter++,
+        text: req.body.text
+    };
+    comments.push(comment);
+    res.json(comment);
 });
-
-//update comments
-app.put('/comments', (req, res) => {
-    const comments = require('./comments.json');
-    const { id, text } = req.body;
-    const comment = comments.find(comment => comment.id === id);
-    comment.text = text;
-    fs.writeFileSync('comments.json', JSON.stringify(comments));
-    res.send(comment);
+//create get request
+app.get('/comments', (req, res) => {
+    res.json(comments);
 });
-
-//delete comments
-app.delete('/comments', (req, res) => {
-    const comments = require('./comments.json');
-    const { id } = req.body;
-    const index = comments.findIndex(comment => comment.id === id);
+//create get request by id
+app.get('/comments/:id', (req, res) => {
+    const comment = comments.find(comment => comment.id === parseInt(req.params.id));
+    res.json(comment);
+});
+//create put request
+app.put('/comments/:id', (req, res) => {
+    const comment = comments.find(comment => comment.id === parseInt(req.params.id));
+    comment.text = req.body.text;
+    res.json(comment);
+});
+//create delete request
+app.delete('/comments/:id', (req, res) => {
+    const index = comments.findIndex(comment => comment.id === parseInt(req.params.id));
     comments.splice(index, 1);
-    fs.writeFileSync('comments.json', JSON.stringify(comments));
-    res.send('Comment deleted');
+    res.json({ id: parseInt(req.params.id) });
 });
-
-app.listen(port, () => {
-    console.log(`Server is listening at http://localhost:${port}`);
+//listen to port 3000
+app.listen(3000, () => {
+    console.log('Server is running on port 3000');
 });
-
-// Path: comments.json
-[
-    {
-        "id": 1,
-        "text": "This is a comment"
-    }
-]
