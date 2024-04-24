@@ -1,9 +1,9 @@
 //create web server
 //create express app
-const express = require('express');
+import express from 'express';
 const app = express();
 //create body parser
-const bodyParser = require('body-parser');
+import bodyParser from 'body-parser';
 app.use(bodyParser.json());
 //create comments array
 const comments = [];
