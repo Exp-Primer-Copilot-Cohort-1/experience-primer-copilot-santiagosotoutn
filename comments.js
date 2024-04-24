@@ -1,52 +1,51 @@
-//create web server
-//create express app
+// Create web server for comment
 import express from 'express';
-const app = express();
-//create body parser
-import bodyParser from 'body-parser';
-app.use(bodyParser.json());
-//create comments array
-const comments = [];
-//create comment counter
-let commentCounter = 1;
-//create post request
-app.post('/comments', (req, res) => {
-    const comment = {
-        id: commentCounter++,
-        text: req.body.text
-    };
-    comments.push(comment);
-    res.json(comment);
-});
-//create get request by id
-app.get('/comments/:id', (req, res) => {
-    const comment = comments.find(comment => comment.id === parseInt(req.params.id));
-    if (!comment) {
-        return res.status(404).json({ error: 'Comment not found' });
-    }
-    res.json(comment);
+const router = express.Router();
+import Comment from '../models/comment';
+
+// Create a new comment
+router.post('/posts/:post/comments', function(req, res, next) {
+    const comment = new Comment(req.body);
+    comment.post = req.post;
+
+    comment.save(function(err, comment) {
+        if (err) { return next(err); }
+
+        req.post.comments.push(comment);
+        req.post.save(function(err) {
+            if (err) { return next(err); }
+
+            res.json(comment);
+        });
+    });
 });
 
-//create put request
-app.put('/comments/:id', (req, res) => {
-    const comment = comments.find(comment => comment.id === parseInt(req.params.id));
-    if (!comment) {
-        return res.status(404).json({ error: 'Comment not found' });
-    }
-    comment.text = req.body.text;
-    res.json(comment);
+// Preload comment objects on routes with ':comment'
+router.param('comment', function(req, _, next, id) {
+    const query = Comment.findById(id);
+
+    query.exec(function (err, comment){
+        if (err) { return next(err); }
+        if (!comment) { return next(new Error('can\'t find comment')); }
+
+        req.comment = comment;
+        return next();
+    });
 });
 
-//create delete request
-app.delete('/comments/:id', (req, res) => {
-    const index = comments.findIndex(comment => comment.id === parseInt(req.params.id));
-    if (index === -1) {
-        return res.status(404).json({ error: 'Comment not found' });
-    }
-    comments.splice(index, 1);
-    res.json({ id: parseInt(req.params.id) });
+// Get comment
+router.get('/posts/:post/comments/:comment', function(req, res) {
+  res.json(req.comment);
 });
-//listen to port 3000
-app.listen(3000, () => {
-    console.log('Server is running on port 3000');
+
+// Upvote comment
+router.put('/posts/:post/comments/:comment/upvote', function(req, res, next) {
+  req.comment.upvote(function(err, comment){
+    if (err) { return next(err); }
+
+    res.json(comment);
+  });
 });
+
+// Export router
+module.exports = router;
